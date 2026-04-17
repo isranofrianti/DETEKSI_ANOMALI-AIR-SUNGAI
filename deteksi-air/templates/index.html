@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>💧 Deteksi Kualitas Air Sungai</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* RESET */
+* { box-sizing: border-box; margin:0; padding:0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1470&q=80') no-repeat center center fixed;
+    background-size: cover;
+}
+
+/* CONTAINER */
+.container {
+    max-width: 800px;
+    width: 100%;
+    background: rgba(255,255,255,0.95);
+    border-radius: 25px;
+    padding: 30px;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+}
+
+/* HEADER */
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 32px;
+    color: #064663;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+/* FORM GRID */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+input {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    transition: 0.3s;
+}
+input:focus {
+    border-color: #064663;
+    box-shadow: 0 0 8px rgba(6,70,99,0.4);
+    outline: none;
+}
+
+/* BUTTONS */
+button {
+    padding: 12px 25px;
+    border-radius: 25px;
+    border: none;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button.submit-btn {
+    background: linear-gradient(45deg,#064663,#0a91b0);
+    color: #fff;
+    margin-right: 10px;
+}
+button.submit-btn:hover { background: linear-gradient(45deg,#046c8f,#0aa4d3); }
+button.reset-btn {
+    background: linear-gradient(45deg,#888,#555);
+    color: #fff;
+}
+button.reset-btn:hover { background: linear-gradient(45deg,#555,#333); }
+
+/* CARD HASIL */
+.result-card {
+    margin-top: 25px;
+    padding: 25px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    animation: fadeIn 0.5s ease-in-out;
+}
+.result-card.anomali { background: #ffe5e5; color: #d40000; }
+.result-card.normal { background: #e5ffe5; color: #0a7500; }
+.big-text { font-size: 36px; font-weight: bold; margin-bottom: 12px; }
+
+/* GRAFIK */
+canvas { margin-top: 25px; border-radius: 15px; }
+
+/* ANIMASI */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>💧 Deteksi Kualitas Air Sungai</h1>
+
+<!-- FORM -->
+<form action="/predict" method="post" id="sensorForm">
+    <div class="form-grid">
+        {% for feature in features %}
+        <input type="number" step="any" name="{{ feature }}" placeholder="{{ feature }}" required>
+        {% endfor %}
+    </div>
+    <div style="text-align:center;">
+        <button type="submit" class="submit-btn">🔍 Prediksi</button>
+        <button type="button" class="reset-btn" onclick="resetForm()">♻️ Reset</button>
+    </div>
+</form>
+
+<!-- HASIL -->
+{% if show_result %}
+<div id="resultDiv" class="result-card {% if prediction_text == 'ANOMALI' %}anomali{% else %}normal{% endif %}">
+    <div class="big-text">{{ prediction_text }}</div>
+    <p>{{ keterangan }}</p>
+    {% if confidence %}
+    <p><b>Confidence:</b> {{ confidence }}%</p>
+    {% endif %}
+</div>
+
+<h3 style="text-align:center; margin-top:25px;">📊 Grafik Sensor</h3>
+<canvas id="chart"></canvas>
+<script>
+const labels = {{ features | tojson }};
+const dataValues = {{ input_data | tojson }};
+const isAnomali = "{{ prediction_text }}" === "ANOMALI";
+
+const ctx = document.getElementById('chart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Nilai Sensor',
+            data: dataValues,
+            backgroundColor: dataValues.map(val => isAnomali ? 'rgba(255,99,132,0.7)' : 'rgba(75,192,192,0.7)'),
+            borderColor: dataValues.map(val => isAnomali ? 'rgba(255,99,132,1)' : 'rgba(75,192,192,1)'),
+            borderWidth: 1,
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endif %}
+
+</div>
+
+<script>
+// Reset Form + sembunyikan hasil & chart
+function resetForm() {
+    document.getElementById('sensorForm').reset();
+    const resultDiv = document.getElementById('resultDiv');
+    if(resultDiv) resultDiv.style.display = 'none';
+    const chartCanvas = document.getElementById('chart');
+    if(chartCanvas) chartCanvas.style.display = 'none';
+}
+</script>
+
+</body>
+</html>
